@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chat App</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        nav { margin-bottom: 20px; }
+        nav a { margin-right: 10px; }
+        .chat-box { border: 1px solid #ccc; padding: 10px; height: 300px; overflow-y: scroll; }
+        .message { margin: 5px 0; }
+        .me { color: green; }
+        .other { color: blue; }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="{% url 'profile-page' %}">Profile</a>
+        <a href="{% url 'chat-list' %}">Chats</a>
+    </nav>
+
+    {% block content %}{% endblock %}
+</body>
+</html>
