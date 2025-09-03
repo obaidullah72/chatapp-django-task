@@ -1,10 +1,15 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>My Chats</h2>
+<h2>All Chats</h2>
 <ul>
     {% for chat in chats %}
         <li>
-            <a href="{% url 'chat-page' chat.id %}">Chat {{ chat.id }}</a>
+            <a href="{% url 'chat-page' chat.id %}">
+                Chat {{ chat.id }} — 
+                {% for p in chat.participants.all %}
+                    {{ p.username }}{% if not forloop.last %}, {% endif %}
+                {% endfor %}
+            </a>
         </li>
     {% empty %}
         <li>No chats yet.</li>

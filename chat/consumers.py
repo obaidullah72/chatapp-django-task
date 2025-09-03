@@ -1,10 +1,12 @@
-# chat/consumers.py - UPDATED
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
 from django.contrib.auth.models import AnonymousUser
 from rest_framework_simplejwt.tokens import AccessToken
-from .models import Chat
+from .models import Chat, Message
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
 
 class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
@@ -33,13 +35,43 @@ class ChatConsumer(AsyncWebsocketConsumer):
         else:
             await self.close()
 
+    async def disconnect(self, close_code):
+        await self.channel_layer.group_discard(
+            self.room_group_name, self.channel_name
+        )
+
+    async def receive(self, text_data):
+        data = json.loads(text_data)
+        message = data.get("message")
+        user = self.scope["user"]
+
+        if not message or not user.is_authenticated:
+            return
+
+        # Save to DB
+        await self.save_message(user, message)
+
+        # Broadcast to group
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {
+                "type": "chat_message",
+                "message": message,
+                "user": user.username,
+            }
+        )
+
+    async def chat_message(self, event):
+        await self.send(text_data=json.dumps({
+            "message": event["message"],
+            "user": event["user"],
+        }))
+
     @database_sync_to_async
     def get_user_from_token(self, token):
         try:
             access_token = AccessToken(token)
             user_id = access_token['user_id']
-            from django.contrib.auth import get_user_model
-            User = get_user_model()
             return User.objects.get(id=user_id)
         except Exception:
             return AnonymousUser()
@@ -47,8 +79,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def has_chat_access(self):
         return Chat.objects.filter(
-            id=self.chat_id, 
+            id=self.chat_id,
             participants=self.scope['user']
         ).exists()
 
-    # ... rest of your existing code ...
+    @database_sync_to_async
+    def save_message(self, user, message):
+        chat = Chat.objects.get(id=self.chat_id)
+        return Message.objects.create(chat=chat, sender=user, content=message)

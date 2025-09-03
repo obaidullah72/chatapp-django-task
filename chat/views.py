@@ -13,8 +13,9 @@ class ChatListView(generics.ListAPIView):
 
 @login_required
 def chat_list_page(request):
-    chats = Chat.objects.filter(participants=request.user)
+    chats = Chat.objects.all()   # show all chats, not just user’s
     return render(request, "chat_list.html", {"chats": chats})
+
 
 @login_required
 def profile_page(request):
