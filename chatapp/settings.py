@@ -86,9 +86,12 @@ TEMPLATES = [
         },
     },
 ]
+ 
+LOGIN_URL = '/login/'
 
-WSGI_APPLICATION = 'chatapp.wsgi.application'
+LOGIN_REDIRECT_URL = '/chat/chat-list-page/'
 
+LOGOUT_REDIRECT_URL = '/login/'
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases

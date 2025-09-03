@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="logout-container">
+    <h2>Logged Out</h2>
+    
+    <div class="logout-message">
+        <p>You have been successfully logged out.</p>
+        <p>Thank you for using our chat application.</p>
+    </div>
+
+    <div class="logout-actions">
+        <a href="{% url 'login' %}" class="btn btn-primary">Login Again</a>
+        <a href="{% url 'home' %}" class="btn btn-secondary">Go to Homepage</a>
+    </div>
+</div>
+
+<style>
+.logout-container {
+    max-width: 500px;
+    margin: 50px auto;
+    padding: 30px;
+    text-align: center;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    background-color: #f9f9f9;
+}
+
+.logout-message {
+    margin-bottom: 30px;
+}
+
+.logout-message p {
+    font-size: 18px;
+    margin-bottom: 10px;
+}
+
+.logout-actions {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+}
+
+.btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.btn-primary {
+    background-color: #007bff;
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #0056b3;
+}
+
+.btn-secondary {
+    background-color: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background-color: #545b62;
+}
+</style>
+{% endblock %}

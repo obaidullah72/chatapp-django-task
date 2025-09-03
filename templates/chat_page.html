@@ -2,35 +2,61 @@
 {% block content %}
 <h2>Chat {{ chat.id }}</h2>
 
-<div class="chat-box" id="chat-box">
-    {% for msg in chat.messages.all %}
+<div class="chat-box" id="chat-messages">
+    {% for msg in messages %}
         <div class="message {% if msg.sender == user %}me{% else %}other{% endif %}">
             <strong>{{ msg.sender.username }}:</strong> {{ msg.content }}
+            <small>{{ msg.timestamp|time:"H:i" }}</small>
         </div>
     {% endfor %}
 </div>
 
-<input type="text" id="message-input" placeholder="Type a message...">
-<button onclick="sendMessage()">Send</button>
+<form id="chat-form">
+    <input type="text" id="message-input" placeholder="Type a message...">
+    <button type="submit">Send</button>
+</form>
 
 <script>
     const chatId = "{{ chat.id }}";
-    const ws = new WebSocket("ws://" + window.location.host + "/ws/chat/" + chatId + "/");
+    const token = localStorage.getItem('access_token') || sessionStorage.getItem('access_token');
+    
+    // Connect with JWT token
+    const chatSocket = new WebSocket(
+        'ws://' + window.location.host + '/ws/chat/' + chatId + '/?token=' + token
+    );
 
-    ws.onmessage = function(e) {
+    chatSocket.onopen = function(e) {
+        console.log('WebSocket connection established');
+    };
+
+    chatSocket.onmessage = function(e) {
         const data = JSON.parse(e.data);
-        const box = document.getElementById("chat-box");
+        const box = document.getElementById("chat-messages");
         const msgDiv = document.createElement("div");
         msgDiv.className = "message";
-        msgDiv.innerHTML = "<strong>" + data.user + ":</strong> " + data.message;
+        msgDiv.innerHTML = `<strong>${data.user}:</strong> ${data.message}`;
         box.appendChild(msgDiv);
         box.scrollTop = box.scrollHeight;
     };
 
-    function sendMessage() {
+    chatSocket.onclose = function(e) {
+        console.error('Chat socket closed unexpectedly');
+    };
+
+    chatSocket.onerror = function(e) {
+        console.error('WebSocket error:', e);
+    };
+
+    // Handle form submission
+    document.getElementById("chat-form").addEventListener("submit", function(e) {
+        e.preventDefault();
         const input = document.getElementById("message-input");
-        ws.send(JSON.stringify({ "message": input.value }));
-        input.value = "";
-    }
+        const message = input.value.trim();
+        
+        if (message && chatSocket.readyState === WebSocket.OPEN) {
+            chatSocket.send(JSON.stringify({ "message": message }));
+            input.value = "";
+        }
+    });
 </script>
 {% endblock %}
