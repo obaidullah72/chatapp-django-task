@@ -15,7 +15,7 @@
     <!-- Chat List button -->
     <a href="{% url 'chat-list-page' %}">
         <button style="padding: 10px 20px; margin: 5px; background-color: #4CAF50; color: white; border: none; border-radius: 5px;">
-            Go to Chats
+            Go to Chat_list
         </button>
     </a>
 
@@ -23,7 +23,7 @@
 {% if chats %}
     <a href="{% url 'chat-page' chats.0.id %}">
         <button style="padding: 10px 20px; margin: 5px; background-color: #FF9800; color: white; border: none; border-radius: 5px;">
-            Open First Chat
+            Go to Chat
         </button>
     </a>
 {% else %}
