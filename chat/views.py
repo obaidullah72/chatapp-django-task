@@ -3,6 +3,7 @@ from .models import Chat
 from .serializers import ChatSerializer
 from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.decorators import login_required 
+from django.contrib.auth.models import User
 
 class ChatListView(generics.ListAPIView):
     serializer_class = ChatSerializer
@@ -24,10 +25,8 @@ def profile_page(request):
 # chat/views.py - UPDATE your chat_page function
 @login_required
 def chat_page(request, chat_id):
-    chat = get_object_or_404(Chat, id=chat_id, participants=request.user)
-    messages = chat.messages.all().order_by('timestamp')[:50]  # Get last 50 messages
+    chat = get_object_or_404(Chat, id=chat_id)
     return render(request, "chat_page.html", {
-        "chat": chat, 
+        "chat": chat,
         "user": request.user,
-        "messages": messages  # Pass messages to template
     })

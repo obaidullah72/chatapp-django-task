@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Welcome to ChatApp</h1>
+<p>This is your homepage. Choose where you want to go:</p>
+
+<div style="margin-top: 20px;">
+    <!-- Profile button -->
+    <a href="{% url 'profile-page' %}">
+        <button style="padding: 10px 20px; margin: 5px; background-color: #2196F3; color: white; border: none; border-radius: 5px;">
+            My Profile
+        </button>
+    </a>
+
+    <!-- Chat List button -->
+    <a href="{% url 'chat-list-page' %}">
+        <button style="padding: 10px 20px; margin: 5px; background-color: #4CAF50; color: white; border: none; border-radius: 5px;">
+            Go to Chats
+        </button>
+    </a>
+
+    <!-- Chat Page button (example: first chat) -->
+{% if chats %}
+    <a href="{% url 'chat-page' chats.0.id %}">
+        <button style="padding: 10px 20px; margin: 5px; background-color: #FF9800; color: white; border: none; border-radius: 5px;">
+            Open First Chat
+        </button>
+    </a>
+{% else %}
+    <p style="color: gray; margin-top: 10px;">No chats available yet.</p>
+{% endif %}
+
+</div>
+{% endblock %}

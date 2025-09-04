@@ -1,4 +1,6 @@
-from django.shortcuts import redirect
+from django.shortcuts import render
+from chat.models import Chat
 
 def home(request):
-    return redirect("chat-list-page")  # make sure "chat-list-page" exists in chat/urls.py
+    chats = Chat.objects.all()  # or filter by user if you want
+    return render(request, "home.html", {"chats": chats})

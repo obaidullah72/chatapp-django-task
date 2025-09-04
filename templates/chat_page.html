@@ -1,59 +1,76 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>Chat {{ chat.id }}</h2>
+<h2>Start a Chat</h2>
 
-<div class="chat-box" id="chat-messages">
-    {% for msg in messages %}
-        <div class="message {% if msg.sender == user %}me{% else %}other{% endif %}">
-            <strong>{{ msg.sender.username }}:</strong> {{ msg.content }}
-            <small>{{ msg.timestamp|time:"H:i" }}</small>
-        </div>
+<!-- Dropdown to pick a user -->
+<label for="chat-user">Choose a user to chat with:</label>
+<select id="chat-user">
+    <option value="">-- Select a user --</option>
+    {% for u in users %}
+        {% if u != user %}
+            <option value="{{ u.id }}">{{ u.username }}</option>
+        {% endif %}
     {% endfor %}
+</select>
+
+<div id="chat-area" style="display:none; margin-top:20px;">
+    <h3>Chat with <span id="chat-username"></span></h3>
+    <div class="chat-box" id="chat-messages"></div>
+
+    <form id="chat-form">
+        <input type="text" id="message-input" placeholder="Type a message...">
+        <button type="submit">Send</button>
+    </form>
 </div>
 
-<form id="chat-form">
-    <input type="text" id="message-input" placeholder="Type a message...">
-    <button type="submit">Send</button>
-</form>
-
 <script>
-    const chatId = "{{ chat.id }}";
     const token = localStorage.getItem('access_token') || sessionStorage.getItem('access_token');
-    
-    // Connect with JWT token
-    const chatSocket = new WebSocket(
-        'ws://' + window.location.host + '/ws/chat/' + chatId + '/?token=' + token
-    );
+    let chatSocket = null;
+    let selectedUserId = null;
 
-    chatSocket.onopen = function(e) {
-        console.log('WebSocket connection established');
-    };
+    document.getElementById("chat-user").addEventListener("change", function() {
+        selectedUserId = this.value;
+        const selectedUsername = this.options[this.selectedIndex].text;
 
-    chatSocket.onmessage = function(e) {
-        const data = JSON.parse(e.data);
-        const box = document.getElementById("chat-messages");
-        const msgDiv = document.createElement("div");
-        msgDiv.className = "message";
-        msgDiv.innerHTML = `<strong>${data.user}:</strong> ${data.message}`;
-        box.appendChild(msgDiv);
-        box.scrollTop = box.scrollHeight;
-    };
+        if (selectedUserId) {
+            document.getElementById("chat-area").style.display = "block";
+            document.getElementById("chat-username").textContent = selectedUsername;
 
-    chatSocket.onclose = function(e) {
-        console.error('Chat socket closed unexpectedly');
-    };
+            // Close old socket if open
+            if (chatSocket) {
+                chatSocket.close();
+            }
 
-    chatSocket.onerror = function(e) {
-        console.error('WebSocket error:', e);
-    };
+            // Open a new WebSocket connection
+            chatSocket = new WebSocket(
+                'ws://' + window.location.host + '/ws/chat/' + selectedUserId + '/?token=' + token
+            );
+
+            chatSocket.onmessage = function(e) {
+                const data = JSON.parse(e.data);
+                const box = document.getElementById("chat-messages");
+                const msgDiv = document.createElement("div");
+                msgDiv.className = "message";
+                msgDiv.innerHTML = `<strong>${data.user}:</strong> ${data.message}`;
+                box.appendChild(msgDiv);
+                box.scrollTop = box.scrollHeight;
+            };
+
+            chatSocket.onclose = function(e) {
+                console.error('Chat socket closed unexpectedly');
+            };
+        } else {
+            document.getElementById("chat-area").style.display = "none";
+        }
+    });
 
     // Handle form submission
     document.getElementById("chat-form").addEventListener("submit", function(e) {
         e.preventDefault();
         const input = document.getElementById("message-input");
         const message = input.value.trim();
-        
-        if (message && chatSocket.readyState === WebSocket.OPEN) {
+
+        if (message && chatSocket && chatSocket.readyState === WebSocket.OPEN) {
             chatSocket.send(JSON.stringify({ "message": message }));
             input.value = "";
         }
