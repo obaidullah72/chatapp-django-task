@@ -15,7 +15,6 @@ class ChatListView(generics.ListAPIView):
     def get_queryset(self):
         return Chat.objects.filter(participants=self.request.user)
 
-
 @login_required
 def chat_list_page(request):
     chats = Chat.objects.all()
@@ -23,14 +22,9 @@ def chat_list_page(request):
 
 
 @login_required
-def profile_page(request):
-    return render(request, "profile.html", {"user": request.user})
-
-
-@login_required
 def chat_page(request, chat_id):
     chat = get_object_or_404(Chat, id=chat_id)
-    users = User.objects.exclude(id=request.user.id)  # ✅ now works with CustomUser
+    users = User.objects.exclude(id=request.user.id)  
     return render(request, "chat_page.html", {
         "chat": chat,
         "user": request.user,

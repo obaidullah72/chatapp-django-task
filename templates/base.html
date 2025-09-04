@@ -5,72 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chat Application</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #f5f5f5;
-        }
-        .navbar {
-            background-color: #343a40;
-            padding: 1rem;
-            color: white;
-        }
-        .navbar a {
-            color: white;
-            text-decoration: none;
-            margin-right: 15px;
-        }
-        .navbar a:hover {
-            text-decoration: underline;
-        }
-        .container {
-            padding: 20px;
-        }
-        .logout-btn {
-            background: none;
-            border: none;
-            color: white;
-            cursor: pointer;
-            font: inherit;
-        }
-        .logout-btn:hover {
-            text-decoration: underline;
-        }
-        .login-form {
-            max-width: 400px;
-            margin: 30px auto;
-            padding: 20px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            background: #fff;
-        }
-        .login-form h2 {
-            margin-bottom: 15px;
-        }
-        .login-form label {
-            display: block;
-            margin-top: 10px;
-        }
-        .login-form input {
-            width: 100%;
-            padding: 8px;
-            margin-top: 5px;
-            box-sizing: border-box;
-        }
-        .login-form button {
-            margin-top: 15px;
-            padding: 10px;
-            width: 100%;
-            background-color: #343a40;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        .login-form button:hover {
-            background-color: #23272b;
-        }
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f5f5f5; }
+        .navbar { background-color: #343a40; padding: 1rem; color: white; }
+        .navbar a { color: white; text-decoration: none; margin-right: 15px; }
+        .navbar a:hover { text-decoration: underline; }
+        .container { padding: 20px; }
+        .logout-btn { background: none; border: none; color: white; cursor: pointer; font: inherit; }
+        .logout-btn:hover { text-decoration: underline; }
     </style>
 </head>
 <body>
@@ -78,16 +19,14 @@
     <a href="{% url 'home' %}">Home</a>
     {% if user.is_authenticated %}
         <a href="{% url 'profile-page' %}">Profile</a>
-        <a href="{% url 'chat-list-page' %}">Chat_list</a>
+        <a href="{% url 'chat-list-page' %}">Chat List</a>
 
-        <!-- Always show Chat button -->
         {% if chats %}
             <a href="{% url 'chat-page' chats.0.id %}">Chat</a>
         {% else %}
             <a href="{% url 'chat-list-page' %}">Chat</a>
         {% endif %}
 
-        <!-- Logout form -->
         <form action="{% url 'logout' %}" method="post" style="display:inline;">
             {% csrf_token %}
             <button type="submit" class="logout-btn">
@@ -100,24 +39,7 @@
 </nav>
 
 <div class="container">
-    {% block content %}
-        {% if not user.is_authenticated %}
-            <div class="login-form">
-                <h2>Login</h2>
-                {% if error %}
-                    <p style="color:red;">{{ error }}</p>
-                {% endif %}
-                <form method="post" action="{% url 'login' %}">
-                    {% csrf_token %}
-                    <label>Username</label>
-                    <input type="text" name="username" required>
-                    <label>Password</label>
-                    <input type="password" name="password" required>
-                    <button type="submit">Login</button>
-                </form>
-            </div>
-        {% endif %}
-    {% endblock %}
+    {% block content %}{% endblock %}
 </div>
 </body>
 </html>

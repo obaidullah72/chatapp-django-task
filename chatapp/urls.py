@@ -6,8 +6,8 @@ from users.views import CustomLoginView, CustomLogoutView
 urlpatterns = [
     path("", home, name="home"),
     path("admin/", admin.site.urls),
-    path("users/", include("users.urls")),
-    path("chat/", include("chat.urls")),
+    path("", include("users.urls")),
+    path("chat", include("chat.urls")),
 
     # Custom Auth
     path("login/", CustomLoginView.as_view(), name="login"),
