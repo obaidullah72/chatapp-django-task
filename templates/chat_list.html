@@ -1,18 +1,92 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>All Chats</h2>
-<ul>
-    {% for chat in chats %}
-        <li>
-            <a href="{% url 'chat-page' chat.id %}">
-                Chat {{ chat.id }} — 
-                {% for p in chat.participants.all %}
-                    {{ p.username }}{% if not forloop.last %}, {% endif %}
-                {% endfor %}
-            </a>
-        </li>
-    {% empty %}
-        <li>No chats yet.</li>
-    {% endfor %}
-</ul>
+<h2>Chats</h2>
+
+<div style="display:flex; height:80vh; border:1px solid #ccc;">
+    <!-- Left column: chat list -->
+    <div style="width:30%; border-right:1px solid #ddd; overflow-y:auto;">
+        <ul id="chat-list">
+            {% for chat in chats %}
+                <li>
+                    {# data-chat-name composed from participants; escape for safety #}
+                    <a href="#" class="chat-link"
+                       data-chat-id="{{ chat.id }}"
+                       data-chat-name="{% for p in chat.participants.all %}{{ p.username }}{% if not forloop.last %}, {% endif %}{% endfor %}">
+                        Chat {{ chat.id }} —
+                        {% for p in chat.participants.all %}
+                            {{ p.username }}{% if not forloop.last %}, {% endif %}
+                        {% endfor %}
+                    </a>
+                </li>
+            {% empty %}
+                <li>No chats yet.</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <!-- Right column: chat messages -->
+    <div style="flex:1; padding:10px;">
+        <h3 id="chat-title">Select a chat</h3>
+        <div id="chat-messages" style="height:70%; overflow-y:auto; border:1px solid #eee; padding:10px;">
+            <p>No messages yet.</p>
+        </div>
+
+        <form id="chat-form" style="margin-top:10px; display:none;">
+            {% csrf_token %}
+            <input type="text" id="message-input" placeholder="Type a message..." style="width:80%;">
+            <button type="submit">Send</button>
+        </form>
+    </div>
+</div>
+
+<script>
+// Template-safe URL template (Django will render an example URL with 0)
+const messagesUrlTemplate = "{% url 'chat-messages-api' 0 %}";
+// e.g. messagesUrlTemplate -> "/chat/chat/0/messages/"
+
+function loadChat(chatId, chatName) {
+    document.getElementById("chat-title").innerText = chatName;
+    document.getElementById("chat-form").style.display = "block";
+
+    // Create actual URL by replacing the placeholder 0 with the chatId
+    const url = messagesUrlTemplate.replace('0', chatId);
+
+    fetch(url, { credentials: 'same-origin' })
+        .then(response => {
+            if (!response.ok) throw new Error("Network response was not ok");
+            return response.json();
+        })
+        .then(data => {
+            const box = document.getElementById("chat-messages");
+            box.innerHTML = "";
+            if (data.length === 0) {
+                box.innerHTML = "<p>No messages yet.</p>";
+                return;
+            }
+            data.forEach(msg => {
+                const p = document.createElement("p");
+                p.innerHTML = `<strong>${msg.sender__username}:</strong> ${msg.content} <small style="color:#666;">${msg.timestamp}</small>`;
+                box.appendChild(p);
+            });
+            box.scrollTop = box.scrollHeight;
+        })
+        .catch(err => {
+            console.error("Failed to load messages:", err);
+        });
+}
+
+// Attach click listeners to all chat links (delegation also possible)
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.chat-link').forEach(function(el) {
+        el.addEventListener('click', function(e) {
+            e.preventDefault();
+            const id = this.dataset.chatId;
+            const name = this.dataset.chatName || ("Chat " + id);
+            loadChat(id, name);
+        });
+    });
+
+    // TODO: wire up 'send' form submission to POST new messages and reload the list
+});
+</script>
 {% endblock %}
