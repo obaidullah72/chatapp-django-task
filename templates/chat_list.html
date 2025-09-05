@@ -32,12 +32,6 @@
         <div id="chat-feed" style="flex:1; border:1px solid #eee; padding:10px; overflow-y:auto; border-radius:4px; background:#fff;">
             <p style="color:gray;">No messages yet.</p>
         </div>
-
-        <!-- Message input -->
-        <div style="margin-top:10px; display:flex;">
-            <input id="message-input" type="text" style="flex:1; padding:5px 10px; border-radius:4px; border:1px solid #ccc;" placeholder="Type a message...">
-            <button id="send-btn" style="margin-left:5px; padding:5px 15px; border-radius:4px; border:none; background:#4CAF50; color:white;">Send</button>
-        </div>
     </div>
 </div>
 
@@ -53,7 +47,7 @@ function loadChat(chatId, chatName) {
     // Close previous WebSocket if exists
     if (ws) ws.close();
 
-    // Connect new WebSocket
+    // Connect new WebSocket (read-only)
     ws = new WebSocket(`ws://${window.location.host}/ws/chat/${chatId}/`);
 
     ws.onmessage = function(e) {
@@ -62,7 +56,7 @@ function loadChat(chatId, chatName) {
         const newMsg = document.createElement("div");
         newMsg.innerHTML = `<strong>${data.user}:</strong> ${data.message} <small style="color:#999;">${data.timestamp || ''}</small>`;
         feed.appendChild(newMsg);
-        feed.scrollTop = feed.scrollHeight; // scroll to bottom
+        feed.scrollTop = feed.scrollHeight; // auto scroll
     };
 
     ws.onopen = function() {
@@ -91,21 +85,5 @@ function loadChat(chatId, chatName) {
             }
         });
 }
-
-// Send message on button click
-document.getElementById("send-btn").onclick = function() {
-    const input = document.getElementById("message-input");
-    const message = input.value.trim();
-    if (!message || !ws || ws.readyState !== WebSocket.OPEN) return;
-    ws.send(JSON.stringify({'message': message}));
-    input.value = '';
-};
-
-// Optional: send message on Enter key
-document.getElementById("message-input").addEventListener("keypress", function(e) {
-    if (e.key === "Enter") {
-        document.getElementById("send-btn").click();
-    }
-});
 </script>
 {% endblock %}
