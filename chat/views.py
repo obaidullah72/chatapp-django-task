@@ -3,8 +3,9 @@ from .models import Chat, Message
 from .serializers import ChatSerializer
 from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth import get_user_model 
+from django.contrib.auth import get_user_model
 from django.http import JsonResponse
+from .utils import is_user_online   # 👈 import your helper function
 
 User = get_user_model()
 
@@ -18,11 +19,22 @@ class ChatListView(generics.ListAPIView):
         return Chat.objects.filter(participants=self.request.user)
 
 
-# ✅ Page to show all chats
+# ✅ Page to show all chats (modified to add online status)
 @login_required
 def chat_list_page(request):
     chats = Chat.objects.filter(participants=request.user)
-    return render(request, "chat_list.html", {"chats": chats})
+
+    # add online status for the "other" user in each chat
+    chats_with_status = []
+    for chat in chats:
+        other_user = chat.participants.exclude(id=request.user.id).first()  # get other person
+        chats_with_status.append({
+            "chat": chat,
+            "other_user": other_user,
+            "is_online": is_user_online(other_user.id) if other_user else False,
+        })
+
+    return render(request, "chat_list.html", {"chats": chats_with_status})
 
 
 # ✅ API for fetching messages
@@ -49,11 +61,19 @@ def chat_page(request, chat_id=None):
             messages = []
     
     users = User.objects.exclude(id=request.user.id)
+
+    # add online status here too
+    users_with_status = [
+        {"id": u.id, "username": u.username, "is_online": is_user_online(u.id)}
+        for u in users
+    ]
+
     return render(request, "chat_page.html", {
         "chat": chat,
-        "users": users,
+        "users": users_with_status,
         "messages": messages,
     })
+
 
 # ✅ Start chat with specific user
 @login_required
@@ -67,14 +87,20 @@ def start_chat(request, user_id):
         chat = Chat.objects.create()
         chat.participants.add(request.user, other_user)
 
-    # 👇 Ensure dropdown users are available here too
     users = User.objects.exclude(id=request.user.id)
+
+    # add online status for dropdown users
+    users_with_status = [
+        {"id": u.id, "username": u.username, "is_online": is_user_online(u.id)}
+        for u in users
+    ]
+
     messages = chat.messages.all()
 
     return render(request, "chat_page.html", {
         "chat": chat,
         "user": request.user,
-        "users": users,
+        "users": users_with_status,
         "messages": messages,
     })
 

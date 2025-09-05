@@ -10,6 +10,11 @@
                 {% for u in users %}
                     <li class="user-list-item" onclick="startChat({{ u.id }}, '{{ u.username|escapejs }}')">
                         {{ u.username }}
+                        {% if u.is_online %}
+                            <span style="color: green; font-size: 0.8rem;">● Online</span>
+                        {% else %}
+                            <span style="color: gray; font-size: 0.8rem;">● Offline</span>
+                        {% endif %}
                     </li>
                 {% empty %}
                     <li class="no-users">No users available</li>
@@ -69,7 +74,7 @@
         max-width: 1280px;
         margin: 0 auto;
         padding: 2rem;
-        min-height: calc(100vh - 4rem); /* Adjust for navbar height */
+        min-height: calc(100vh - 4rem);
     }
 
     .chat-layout {
@@ -113,6 +118,9 @@
         color: var(--text-primary);
         border-bottom: 1px solid var(--border-light);
         transition: background 0.2s;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
     }
 
     .user-list-item:hover {
@@ -173,17 +181,17 @@
     }
 
     .chat-bubble.mine {
-        background: var(--message-user-bg); /* Green for outgoing messages */
+        background: var(--message-user-bg);
         color: var(--text-primary);
         align-self: flex-end;
-        border-radius: 0.75rem 0.75rem 0 0.75rem; /* WhatsApp-like rounding */
+        border-radius: 0.75rem 0.75rem 0 0.75rem;
     }
 
     .chat-bubble.theirs {
-        background: var(--message-received-bg); /* White for incoming messages */
+        background: var(--message-received-bg);
         color: var(--text-primary);
         align-self: flex-start;
-        border-radius: 0.75rem 0.75rem 0.75rem 0; /* WhatsApp-like rounding */
+        border-radius: 0.75rem 0.75rem 0.75rem 0;
     }
 
     .bubble-content .text {
@@ -213,7 +221,7 @@
         flex: 1;
         padding: 0.75rem;
         border: 1px solid var(--border-light);
-        border-radius: 1rem; /* WhatsApp-like input field */
+        border-radius: 1rem;
         font-size: 0.9rem;
         outline: none;
         transition: border-color 0.2s;
@@ -243,7 +251,6 @@
         display: none;
     }
 
-    /* Navbar styling to match home.html and profile.html */
     .navbar {
         background-color: var(--dark-bg);
         padding: 1rem;
@@ -277,7 +284,6 @@
 let chatSocket = null;
 let currentChatId = null;
 
-// Load all messages for this chat
 async function loadMessages(chatId) {
     const response = await fetch(`/chat/${chatId}/messages/`);
     const messages = await response.json();
@@ -305,7 +311,6 @@ async function loadMessages(chatId) {
     }
 }
 
-// Start chat with a user
 async function startChat(userId, username) {
     document.getElementById("chat-area").classList.remove("hidden");
     document.getElementById("chat-username").textContent = username;
@@ -314,21 +319,17 @@ async function startChat(userId, username) {
         chatSocket.close();
     }
 
-    // Ask backend to get or create chat
     const response = await fetch(`/chat/get_or_create_chat/${userId}/`);
     const data = await response.json();
     currentChatId = data.chat_id;
 
-    // Load history
     await loadMessages(currentChatId);
 
-    // Force WebSocket to Daphne port 8001
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     chatSocket = new WebSocket(
         `${protocol}//${window.location.hostname}:8001/ws/chat/${currentChatId}/`
     );
 
-    // Receive messages live
     chatSocket.onmessage = function(e) {
         const data = JSON.parse(e.data);
         const feed = document.getElementById("chat-messages");
@@ -350,7 +351,6 @@ async function startChat(userId, username) {
     };
 }
 
-// Handle sending messages
 document.getElementById("chat-form").addEventListener("submit", function(e) {
     e.preventDefault();
     const input = document.getElementById("message-input");
