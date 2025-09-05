@@ -2,89 +2,115 @@
 {% block content %}
 <h2>Start a Chat</h2>
 
-<!-- Dropdown to pick a user -->
-<label for="chat-user">Choose a user to chat with:</label>
-<select id="chat-user">
-    <option value="">-- Select a user --</option>
-    {% for u in users %}
-        {% if u != user %}
-            <option value="{{ u.id }}">{{ u.username }}</option>
-        {% endif %}
-    {% endfor %}
-</select>
-
-<div id="chat-area" style="display:none; margin-top:20px;">
-    <h3>Chat with <span id="chat-username"></span></h3>
-
-    <!-- ✅ Show all previous messages -->
-    <div class="chat-box messages" id="chat-messages" style="border:1px solid #ccc; height:300px; overflow-y:scroll; padding:10px;">
-        {% for msg in messages %}
-            <p><strong>{{ msg.sender.username }}:</strong> {{ msg.content }} <small>{{ msg.timestamp }}</small></p>
-        {% empty %}
-            <p>No messages yet.</p>
-        {% endfor %}
+<!-- List of all users -->
+<div style="display:flex; gap:20px;">
+    <div style="width:200px; border-right:1px solid #ccc; padding-right:10px;">
+        <h4>Users</h4>
+        <ul id="user-list" style="list-style:none; padding:0;">
+            {% for u in users %}
+                <li style="padding:5px; cursor:pointer; border-bottom:1px solid #eee;"
+                    onclick="startChat({{ u.id }}, '{{ u.username }}')">
+                    {{ u.username }}
+                </li>
+            {% endfor %}
+        </ul>
     </div>
 
-    <!-- ✅ Send new messages -->
-    <form id="chat-form" style="margin-top:10px;">
-        <input type="text" id="message-input" placeholder="Type a message..." style="width:80%;">
-        <button type="submit">Send</button>
-    </form>
+    <div id="chat-area" style="flex:1; display:none;">
+        <h3>Chat with <span id="chat-username"></span></h3>
+
+        <!-- Chat messages -->
+        <div id="chat-messages"
+             style="border:1px solid #ccc; height:300px; overflow-y:scroll; padding:10px;">
+            <p style="color:gray;">Select a user to load messages...</p>
+        </div>
+
+        <!-- Send new messages -->
+        <form id="chat-form" style="margin-top:10px;">
+            <input type="text" id="message-input" placeholder="Type a message..." style="width:80%;">
+            <button type="submit">Send</button>
+        </form>
+    </div>
 </div>
 
 <script>
-    const token = localStorage.getItem('access_token') || sessionStorage.getItem('access_token');
-    let chatSocket = null;
-    let selectedUserId = null;
+let chatSocket = null;
+let currentChatId = null;
 
-    // Handle user selection
-    document.getElementById("chat-user").addEventListener("change", function() {
-        selectedUserId = this.value;
-        const selectedUsername = this.options[this.selectedIndex].text;
+// Load all messages for this chat
+async function loadMessages(chatId) {
+    const response = await fetch(`/chat/${chatId}/messages/`);
+    const messages = await response.json();
+    const feed = document.getElementById("chat-messages");
+    feed.innerHTML = "";
+    if (messages.length === 0) {
+        feed.innerHTML = "<p style='color:gray;'>No messages yet.</p>";
+    } else {
+        messages.forEach(msg => {
+            const div = document.createElement("div");
+            div.innerHTML =
+                `<strong>${msg.sender__username}:</strong> ${msg.content} <small>${msg.timestamp}</small>`;
+            feed.appendChild(div);
+        });
+        feed.scrollTop = feed.scrollHeight;
+    }
+}
 
-        if (selectedUserId) {
-            document.getElementById("chat-area").style.display = "block";
-            document.getElementById("chat-username").textContent = selectedUsername;
+// Start chat with a user
+async function startChat(userId, username) {
+    document.getElementById("chat-area").style.display = "block";
+    document.getElementById("chat-username").textContent = username;
 
-            // Close old socket if open
-            if (chatSocket) {
-                chatSocket.close();
-            }
+    if (chatSocket) {
+        chatSocket.close();
+    }
 
-            // Open a new WebSocket connection
-            chatSocket = new WebSocket(
-                'ws://' + window.location.host + '/ws/chat/' + selectedUserId + '/?token=' + token
-            );
+    // Ask backend to get or create chat
+    const response = await fetch(`/chat/get_or_create_chat/${userId}/`);
+    const data = await response.json();
+    currentChatId = data.chat_id;
 
-            // Handle incoming messages
-            chatSocket.onmessage = function(e) {
-                const data = JSON.parse(e.data);
-                const box = document.getElementById("chat-messages");
-                const msgDiv = document.createElement("div");
-                msgDiv.className = "message";
-                msgDiv.innerHTML = `<strong>${data.user}:</strong> ${data.message}`;
-                box.appendChild(msgDiv);
-                box.scrollTop = box.scrollHeight;
-            };
+    // Load history
+    await loadMessages(currentChatId);
 
-            chatSocket.onclose = function(e) {
-                console.error('Chat socket closed unexpectedly');
-            };
-        } else {
-            document.getElementById("chat-area").style.display = "none";
-        }
-    });
+    // ✅ Force WebSocket to Daphne port 8001
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    chatSocket = new WebSocket(
+        `${protocol}//${window.location.hostname}:8001/ws/chat/${currentChatId}/`
+    );
 
-    // Handle form submission
-    document.getElementById("chat-form").addEventListener("submit", function(e) {
-        e.preventDefault();
-        const input = document.getElementById("message-input");
-        const message = input.value.trim();
+    // Receive messages live
+    chatSocket.onmessage = function(e) {
+        const data = JSON.parse(e.data);
+        const feed = document.getElementById("chat-messages");
+        const div = document.createElement("div");
+        div.innerHTML =
+            `<strong>${data.user}:</strong> ${data.message} <small>${data.timestamp || ''}</small>`;
+        feed.appendChild(div);
+        feed.scrollTop = feed.scrollHeight;
+    };
 
-        if (message && chatSocket && chatSocket.readyState === WebSocket.OPEN) {
-            chatSocket.send(JSON.stringify({ "message": message }));
-            input.value = "";
-        }
-    });
+    chatSocket.onclose = function() {
+        console.error('Chat socket closed unexpectedly');
+    };
+}
+
+// Handle sending messages
+document.getElementById("chat-form").addEventListener("submit", function(e) {
+    e.preventDefault();
+    const input = document.getElementById("message-input");
+    const message = input.value.trim();
+
+    if (!message) return;
+
+    if (chatSocket && chatSocket.readyState === WebSocket.OPEN) {
+        chatSocket.send(JSON.stringify({ "message": message }));
+    } else {
+        console.error("WebSocket is not connected");
+    }
+
+    input.value = "";
+    input.focus();
+});
 </script>
 {% endblock %}

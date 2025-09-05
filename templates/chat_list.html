@@ -1,94 +1,111 @@
 {% extends "base.html" %}
+
 {% block content %}
 <h2>Chats</h2>
 
-<div style="display:flex; height:80vh; border:1px solid #ccc;">
+<div style="display:flex; height:80vh; border:1px solid #ccc; border-radius:8px; overflow:hidden;">
+
     <!-- Left column: chat list -->
-    <div style="width:30%; border-right:1px solid #ddd; overflow-y:auto;">
-        <ul id="chat-list">
+    <div style="width:30%; border-right:1px solid #ddd; overflow-y:auto; background:#f9f9f9;">
+        <ul id="chat-list" style="list-style:none; padding:10px;">
             {% for chat in chats %}
-                <li>
-<a href="#" onclick="loadChat({{ chat.id }}, '{{ chat.participants.all|join:', '|escapejs }}'); return false;">
-    Chat {{ chat.id }} — 
-    {% for p in chat.participants.all %}
-        {{ p.username }}{% if not forloop.last %}, {% endif %}
-    {% endfor %}
-</a>
+                <li style="margin-bottom:8px;">
+                    <a href="#" onclick="loadChat({{ chat.id }}, '{{ chat.participants.all|join:", "|escapejs }}'); return false;" 
+                       style="text-decoration:none; color:#333; display:block; padding:5px 10px; border-radius:4px; transition:0.2s;">
+                        Chat {{ chat.id }} — 
+                        {% for p in chat.participants.all %}
+                            {{ p.username }}{% if not forloop.last %}, {% endif %}
+                        {% endfor %}
+                    </a>
                 </li>
             {% empty %}
-                <li>No chats yet.</li>
+                <li style="color: gray;">No chats yet.</li>
             {% endfor %}
         </ul>
     </div>
 
     <!-- Right column: chat messages -->
-    <div style="flex:1; padding:10px;">
-        <h3 id="chat-title">Select a chat</h3>
-        <div id="chat-messages" style="height:70%; overflow-y:auto; border:1px solid #eee; padding:10px;">
-            <p>No messages yet.</p>
+    <div style="flex:1; display:flex; flex-direction:column; padding:10px;">
+        <h3 id="chat-title" style="margin-bottom:10px; color:#444;">Select a chat</h3>
+
+        <!-- Chat feed -->
+        <div id="chat-feed" style="flex:1; border:1px solid #eee; padding:10px; overflow-y:auto; border-radius:4px; background:#fff;">
+            <p style="color:gray;">No messages yet.</p>
         </div>
 
-        <form id="chat-form" style="margin-top:10px; display:none;">
-            {% csrf_token %}
-            <input type="text" id="message-input" placeholder="Type a message..." style="width:80%;">
-            <button type="submit">Send</button>
-        </form>
+        <!-- Message input -->
+        <div style="margin-top:10px; display:flex;">
+            <input id="message-input" type="text" style="flex:1; padding:5px 10px; border-radius:4px; border:1px solid #ccc;" placeholder="Type a message...">
+            <button id="send-btn" style="margin-left:5px; padding:5px 15px; border-radius:4px; border:none; background:#4CAF50; color:white;">Send</button>
+        </div>
     </div>
 </div>
 
 <script>
-let chatSocket = null;
+let ws = null;
+let currentChatId = null;
 
+// Load previous messages and connect WebSocket
 function loadChat(chatId, chatName) {
+    currentChatId = chatId;
     document.getElementById("chat-title").innerText = chatName;
-    document.getElementById("chat-form").style.display = "block";
 
-    // Close previous socket if open
-    if (chatSocket) chatSocket.close();
+    // Close previous WebSocket if exists
+    if (ws) ws.close();
 
-    // Open new WebSocket
-    chatSocket = new WebSocket(
-        'ws://' + window.location.host + '/ws/chat/' + chatId + '/'
-    );
+    // Connect new WebSocket
+    ws = new WebSocket(`ws://${window.location.host}/ws/chat/${chatId}/`);
 
-    chatSocket.onmessage = function(e) {
+    ws.onmessage = function(e) {
         const data = JSON.parse(e.data);
-        const box = document.getElementById("chat-messages");
-        const p = document.createElement("p");
-        p.innerHTML = `<strong>${data.user}:</strong> ${data.message}`;
-        box.appendChild(p);
-        box.scrollTop = box.scrollHeight;
+        const feed = document.getElementById("chat-feed");
+        const newMsg = document.createElement("div");
+        newMsg.innerHTML = `<strong>${data.user}:</strong> ${data.message} <small style="color:#999;">${data.timestamp || ''}</small>`;
+        feed.appendChild(newMsg);
+        feed.scrollTop = feed.scrollHeight; // scroll to bottom
     };
 
-    chatSocket.onclose = function(e) {
-        console.error('Chat socket closed unexpectedly');
+    ws.onopen = function() {
+        console.log("Connected to chat " + chatId);
     };
 
-    // Send message
-    document.getElementById("chat-form").onsubmit = function(e) {
-        e.preventDefault();
-        const input = document.getElementById("message-input");
-        const message = input.value.trim();
-
-        if (message && chatSocket.readyState === WebSocket.OPEN) {
-            chatSocket.send(JSON.stringify({ "message": message }));
-            input.value = "";
-        }
+    ws.onclose = function() {
+        console.log("Disconnected from chat " + chatId);
     };
 
     // Load previous messages via API
     fetch(`/chat/chat/${chatId}/messages/`)
         .then(response => response.json())
         .then(data => {
-            const box = document.getElementById("chat-messages");
-            box.innerHTML = "";
-            data.forEach(msg => {
-                const p = document.createElement("p");
-                p.innerHTML = `<strong>${msg.sender__username}:</strong> ${msg.content}`;
-                box.appendChild(p);
-            });
-            box.scrollTop = box.scrollHeight;
+            const feed = document.getElementById("chat-feed");
+            feed.innerHTML = "";
+            if (data.length === 0) {
+                feed.innerHTML = "<p style='color:gray;'>No messages yet.</p>";
+            } else {
+                data.forEach(msg => {
+                    const p = document.createElement("div");
+                    p.innerHTML = `<strong>${msg.sender__username}:</strong> ${msg.content} <small style="color:#999;">${msg.timestamp}</small>`;
+                    feed.appendChild(p);
+                });
+                feed.scrollTop = feed.scrollHeight;
+            }
         });
 }
+
+// Send message on button click
+document.getElementById("send-btn").onclick = function() {
+    const input = document.getElementById("message-input");
+    const message = input.value.trim();
+    if (!message || !ws || ws.readyState !== WebSocket.OPEN) return;
+    ws.send(JSON.stringify({'message': message}));
+    input.value = '';
+};
+
+// Optional: send message on Enter key
+document.getElementById("message-input").addEventListener("keypress", function(e) {
+    if (e.key === "Enter") {
+        document.getElementById("send-btn").click();
+    }
+});
 </script>
 {% endblock %}

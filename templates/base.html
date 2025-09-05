@@ -22,9 +22,11 @@
         <a href="{% url 'chat-list-page' %}">Chat List</a>
 
         {% if chats %}
-            <a href="{% url 'chat-page' chats.0.id %}">Chat</a>
+            <!-- ✅ Go directly to first available chat -->
+            <a href="{% url 'chat-detail' chats.0.id %}">Chat</a>
         {% else %}
-            <a href="{% url 'chat-list-page' %}">Chat</a>
+            <!-- ✅ Go to chat lobby (user list) -->
+            <a href="{% url 'chat-lobby' %}">Chat</a>
         {% endif %}
 
         <form action="{% url 'logout' %}" method="post" style="display:inline;">

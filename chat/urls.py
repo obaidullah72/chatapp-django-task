@@ -1,5 +1,11 @@
 from django.urls import path
-from .views import ChatListView, chat_list_page, chat_page, chat_messages_api
+from .views import (
+    ChatListView, 
+    chat_list_page, 
+    chat_page, 
+    get_or_create_chat,
+    chat_messages
+)
 
 urlpatterns = [
     # API (REST)
@@ -7,8 +13,10 @@ urlpatterns = [
 
     # Frontend pages
     path("chat-list-page/", chat_list_page, name="chat-list-page"),
-    path("chat/<int:chat_id>/", chat_page, name="chat-page"),
+    path("", chat_page, name="chat-lobby"),              # /chat/ → chat lobby
+    path("<int:chat_id>/", chat_page, name="chat-detail"),  # /chat/10/ → specific chat
 
-    # API (for AJAX loading messages inside chat-list-page)
-    path("chat/<int:chat_id>/messages/", chat_messages_api, name="chat-messages-api"),
+    # AJAX / API endpoints
+    path("get_or_create_chat/<int:user_id>/", get_or_create_chat, name="get_or_create_chat"),
+    path("<int:chat_id>/messages/", chat_messages, name="chat_messages"),
 ]
