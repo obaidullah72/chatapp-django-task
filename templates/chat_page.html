@@ -1,5 +1,46 @@
 {% extends "base.html" %}
 {% block content %}
+
+<style>
+.chat-bubble {
+    max-width: 60%;
+    padding: 8px 12px;
+    margin: 5px;
+    border-radius: 12px;
+    display: inline-block;
+    clear: both;
+    word-wrap: break-word;
+}
+
+.chat-bubble.mine {
+    background-color: #DCF8C6;   /* WhatsApp green */
+    float: right;
+    text-align: right;
+}
+
+.chat-bubble.theirs {
+    background-color: #F1F0F0;   /* light gray */
+    float: left;
+    text-align: left;
+}
+
+.bubble-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.bubble-content .text {
+    font-size: 14px;
+}
+
+.bubble-content .timestamp {
+    font-size: 10px;
+    color: gray;
+    margin-top: 3px;
+    align-self: flex-end;
+}
+</style>
+
 <h2>Start a Chat</h2>
 
 <!-- List of all users -->
@@ -48,8 +89,14 @@ async function loadMessages(chatId) {
     } else {
         messages.forEach(msg => {
             const div = document.createElement("div");
-            div.innerHTML =
-                `<strong>${msg.sender__username}:</strong> ${msg.content} <small>${msg.timestamp}</small>`;
+            const isMine = msg.sender__username === "{{ user.username }}";
+            div.className = "chat-bubble " + (isMine ? "mine" : "theirs");
+            div.innerHTML = `
+                <div class="bubble-content">
+                    <span class="text">${msg.content}</span>
+                    <span class="timestamp">${msg.timestamp}</span>
+                </div>
+            `;
             feed.appendChild(div);
         });
         feed.scrollTop = feed.scrollHeight;
@@ -84,8 +131,14 @@ async function startChat(userId, username) {
         const data = JSON.parse(e.data);
         const feed = document.getElementById("chat-messages");
         const div = document.createElement("div");
-        div.innerHTML =
-            `<strong>${data.user}:</strong> ${data.message} <small>${data.timestamp || ''}</small>`;
+        const isMine = data.user === "{{ user.username }}";
+        div.className = "chat-bubble " + (isMine ? "mine" : "theirs");
+        div.innerHTML = `
+            <div class="bubble-content">
+                <span class="text">${data.message}</span>
+                <span class="timestamp">${data.timestamp || ''}</span>
+            </div>
+        `;
         feed.appendChild(div);
         feed.scrollTop = feed.scrollHeight;
     };
