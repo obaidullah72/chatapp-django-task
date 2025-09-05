@@ -278,7 +278,7 @@ function loadChat(chatId, chatName) {
     };
 
     // Load previous messages via API
-    fetch(`/chat/chat/${chatId}/messages/`)
+        fetch(`/chat/${chatId}/messages/`)
         .then(response => response.json())
         .then(data => {
             const feed = document.getElementById("chat-feed");
