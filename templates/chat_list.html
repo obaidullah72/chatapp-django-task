@@ -7,19 +7,22 @@
         <div class="chat-sidebar">
             <h4 class="sidebar-title">Chats</h4>
             <ul id="chat-list" class="chat-list">
-                {% for chat in chats %}
-                    <li class="chat-list-item">
-                        <a href="#" onclick="loadChat({{ chat.id }}, '{{ chat.participants.all|join:", "|escapejs }}'); return false;" 
-                           class="chat-link">
-                            {% for p in chat.participants.all %}
-                                {{ p.username }}{% if not forloop.last %}, {% endif %}
-                            {% endfor %}
-                        </a>
-                    </li>
-                {% empty %}
-                    <li class="no-chats">No chats yet</li>
-                {% endfor %}
-            </ul>
+    {% for chat in chats %}
+        <li class="chat-list-item">
+            <a href="#" onclick="loadChat({{ chat.id }}, '{{ chat.other_user.username|escapejs }}'); return false;" 
+               class="chat-link">
+                {{ chat.other_user.username }}
+                {% if chat.is_online %}
+                    <span style="color: green;">●</span>
+                {% else %}
+                    <span style="color: gray;">●</span>
+                {% endif %}
+            </a>
+        </li>
+    {% empty %}
+        <li class="no-chats">No chats yet</li>
+    {% endfor %}
+</ul>
         </div>
 
         <!-- Right column: chat messages -->

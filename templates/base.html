@@ -21,13 +21,8 @@
     <a href="{% url 'home' %}">Home</a>
     {% if user.is_authenticated %}
         <a href="{% url 'profile-page' %}">Profile</a>
+        <a href="{% url 'chat-lobby' %}">Start Chat</a>
         <a href="{% url 'chat-list-page' %}">Chat List</a>
-        <!-- Check if chats is defined and has at least one item -->
-{% if chats and chats|length > 0 %}
-    <a href="{% url 'chat-detail' chats.0.chat.id %}">Chat</a>
-{% else %}
-    <a href="{% url 'chat-lobby' %}">Chat</a>
-{% endif %}
         <form action="{% url 'logout' %}" method="post" style="display:inline;">
             {% csrf_token %}
             <button type="submit" class="logout-btn">

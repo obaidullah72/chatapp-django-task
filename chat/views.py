@@ -19,23 +19,16 @@ class ChatListView(generics.ListAPIView):
         return Chat.objects.filter(participants=self.request.user)
 
 
-# ✅ Page to show all chats (modified to add online status)
 @login_required
 def chat_list_page(request):
     chats = Chat.objects.filter(participants=request.user)
 
-    # add online status for the "other" user in each chat
-    chats_with_status = []
     for chat in chats:
-        other_user = chat.participants.exclude(id=request.user.id).first()  # get other person
-        chats_with_status.append({
-            "chat": chat,
-            "other_user": other_user,
-            "is_online": is_user_online(other_user.id) if other_user else False,
-        })
+        other_user = chat.participants.exclude(id=request.user.id).first()
+        chat.other_user = other_user
+        chat.is_online = is_user_online(other_user.id) if other_user else False
 
-    return render(request, "chat_list.html", {"chats": chats_with_status})
-
+    return render(request, "chat_list.html", {"chats": chats})
 
 # ✅ API for fetching messages
 @login_required
