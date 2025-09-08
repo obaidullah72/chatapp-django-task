@@ -11,6 +11,7 @@ User = get_user_model()
 # 🔹 Global in-memory store for online users (not shared across processes)
 ONLINE_USERS = set()
 
+
 class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.chat_id = self.scope['url_route']['kwargs']['chat_id']
@@ -21,7 +22,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
             await self.close()
             return
 
-        # ✅ Mark user online
+        # ✅ Mark user online in DB
+        await self.set_user_online(self.user)
+
+        # Also keep them in memory for quick checks
         ONLINE_USERS.add(self.user.id)
         print(f"✅ {self.user.username} is now ONLINE. Online users: {ONLINE_USERS}")
 
@@ -33,7 +37,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     async def disconnect(self, close_code):
         if self.user and not isinstance(self.user, AnonymousUser):
-            # ✅ Mark user offline
+            # ✅ Mark user offline in DB
+            await self.set_user_offline(self.user)
+
             if self.user.id in ONLINE_USERS:
                 ONLINE_USERS.remove(self.user.id)
                 print(f"❌ {self.user.username} went OFFLINE. Online users: {ONLINE_USERS}")
@@ -93,3 +99,14 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "user": event["user"],
             "timestamp": event["timestamp"],
         }))
+
+    # --- 🔹 DB Updates ---
+    @database_sync_to_async
+    def set_user_online(self, user):
+        user.is_online = True
+        user.save(update_fields=["is_online"])
+
+    @database_sync_to_async
+    def set_user_offline(self, user):
+        user.is_online = False
+        user.save(update_fields=["is_online"])

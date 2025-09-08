@@ -327,8 +327,8 @@ async function startChat(userId, username) {
 
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     chatSocket = new WebSocket(
-        `${protocol}//${window.location.hostname}:8001/ws/chat/${currentChatId}/`
-    );
+    `${protocol}//${window.location.host}/ws/chat/${currentChatId}/`
+);
 
     chatSocket.onmessage = function(e) {
         const data = JSON.parse(e.data);
