@@ -85,10 +85,10 @@ python manage.py createsuperuser
 
 ```bash
 python manage.py runserver
+daphne -b 127.0.0.1 -p 8000 chatapp.asgi:application
 ```
 
-Open: [http://127.0.0.1:8000/](http://127.0.0.1:8000/)(daphne -b 127.0.0.1 -p 8000 chatapp.asgi:application/)
-
+Open: [http://127.0.0.1:8000/](http://127.0.0.1:8000/)
 
 ---
 
