@@ -4,6 +4,7 @@ from chat.models import Chat
 from django.shortcuts import render, redirect
 from django.contrib.auth import login
 from .forms import SignUpForm
+from django.contrib import messages
 
 @login_required
 def home(request):
@@ -18,9 +19,9 @@ def signup_view(request):
     if request.method == 'POST':
         form = SignUpForm(request.POST)
         if form.is_valid():
-            user = form.save()          # creates the user
-            login(request, user)        # log the user in immediately
-            return redirect('home')     # redirect to home or chat page
+            form.save()          
+            messages.success(request, "Your account has been created! Please log in.")       
+            return redirect('login')     
     else:
         form = SignUpForm()
     return render(request, 'signup.html', {'form': form})
